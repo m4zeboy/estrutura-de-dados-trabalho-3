@@ -72,6 +72,7 @@ void showList(ListNode *list) {
 typedef struct treeNode {
   string word;
   int fb;
+  ListNode *list;
   struct treeNode *left, *right;
 } TreeNode;
 
@@ -82,6 +83,7 @@ TreeNode *createTreeNode(string word) {
     if(node->word) {      
       strcpy(node->word, word);
       node->fb = 0;
+      node->list = NULL;
       node->left = NULL;
       node->right = NULL;
     }
@@ -89,7 +91,153 @@ TreeNode *createTreeNode(string word) {
   return node;
 }
 
+/* rotações */
+TreeNode *simpleRightRotation(TreeNode *root) {
+  TreeNode *u, *t2;
+  u = root->left;
+  t2 = u->right;
+
+  u->right = root;
+  root->left = t2;
+
+  root->fb = 0;
+  u->fb = 0;
+
+  return u;
+}
+
+TreeNode *doubleRightRotation(TreeNode *root) {
+  TreeNode *u, *v, *t2, *t3;
+  u = root->left;
+  v = u->right;
+
+  t2 = v->left;
+  t3 = v->right;
+
+  v->left = u;
+  v->right = root;
+
+  root->left =t3;
+  u->right = t2;
+
+  if(v->fb == -1) {
+    u->fb = 1;
+  } else {
+    u->fb =0;
+  }
+  if(v->fb == 1) {
+    root->fb = -1;
+  } else {
+    root->fb = 0;
+  }
+  v->fb = 0;
+
+  return v;
+} 
+
+TreeNode *simpleLeftRotation(TreeNode *root) {
+  TreeNode *u, *t2;
+  u =  root->right;
+  t2 = u->left;
+
+  u->left = root;
+  root->right = t2;
+
+  root->fb = 0;
+  u->fb = 0;
+
+  return u;
+}
+
+TreeNode *doubleLeftRotation(TreeNode *root) {
+  TreeNode *u, *z, *t2, *t3;
+  u = root->right;
+  z = u->left;
+
+  t2 = z->left;
+  t3 = z->right;
+  
+  z->right = u;
+  z->left =root;
+
+  u->left = t3;
+  root->right = t2;
+  
+  if(z->fb == 1) {
+    u->fb = -1;
+  } else {
+    u->fb = 0;
+  }
+  if(z->fb == -1) {
+    root->fb = 1;
+  } else {
+    root->fb = 0;
+  }
+  z->fb = 0;
+
+  return z;
+}
+
+TreeNode *insertNodeInTree(TreeNode *root, string word, int *h) {
+  if(root == NULL) {
+    *h = 1;
+    return createTreeNode(word);
+  } else if(strcmp(word,root->word) == 0) {
+    return root;
+  } else if(strcmp(word,root->word) < 0) {
+    root->left = insertNodeInTree(root->left, word, h);
+    if(*h == 1) {
+      if(root->fb == 1) {
+        root->fb = 0;
+        *h = 0;
+      } else if(root->fb == 0) root->fb = -1;
+      else {
+        root->fb = -2;
+        if(root->left->fb == -1) {
+          root = simpleRightRotation(root);
+        } else if(root->left->fb == 1) {
+          root = doubleRightRotation(root);
+        }
+      }
+    }
+    return root;
+  } else {
+    root->right = insertNodeInTree(root->right,word, h);
+    if(*h == 1) {
+      if(root->fb == -1) {
+        *h = 0;
+        root->fb = 0;
+      }
+      else if(root->fb == 0) root->fb = 1;
+      else {
+        root->fb = 2;
+        if(root->right->fb == 1) {
+          root = simpleLeftRotation(root);
+        } else if(root->right->fb == -1) {
+          root = doubleLeftRotation(root);
+        }
+      }
+    }
+    return root;
+  }
+}
+
+void showTree(TreeNode *root) {
+  if(root) {
+    showTree(root->left);
+    printf("%s ", root->word);
+    showTree(root->right);
+  }
+}
+
 int main(void) {
-  TreeNode *table[SIZE];
+  TreeNode *tree = NULL;
+  int h = 0;
+  tree = insertNodeInTree(tree, "moises", &h);  
+  tree = insertNodeInTree(tree, "antonio", &h);  
+  tree = insertNodeInTree(tree, "gabriel", &h);  
+  tree = insertNodeInTree(tree, "maria", &h);  
+  tree = insertNodeInTree(tree, "vilmar", &h);
+  showTree(tree);  
   return 0;
 }
