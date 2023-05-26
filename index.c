@@ -1,8 +1,20 @@
+/****************************************************
+2 *                                                 *
+3 * Moisés Silva de Azevedo                         *
+4 * RGA 2022.0743.004-6                             *
+5 * Implementação 2                                 *
+6 * Disciplina: Estruturas de Dados e Programação I *
+7 * Professor: Ronaldo Fiorilo                      *
+8 *                                                 *
+9 ***************************************************/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #define SIZE 10
+#define FILENAME "data.txt"
+
 typedef char * string;
 
 typedef struct listNode {
@@ -71,6 +83,14 @@ void showList(ListNode *list) {
     showList(list->next);
   }
 }
+
+int countListNodes(ListNode *list) {
+  if(list) {
+    return 1 + countListNodes(list->next);
+  } else return 0;
+}
+
+/* ARVORE AVL */
 
 TreeNode *createTreeNode(string word) {
   TreeNode *node = (TreeNode *) malloc(sizeof(TreeNode));
@@ -173,6 +193,8 @@ TreeNode *doubleLeftRotation(TreeNode *root) {
 
   return z;
 }
+/* =============== ROTAÇÕES =============== */
+
 
 TreeNode *insertNodeInTree(TreeNode *root, string word, int *h) {
   if(root == NULL) {
@@ -229,6 +251,11 @@ TreeNode *searchNodeInTree(TreeNode *root, string word) {
   }
 }
 
+int countTreeNodes(TreeNode *root) {
+  if(root) {
+    return 1 + countTreeNodes(root->left) + countTreeNodes(root->right);
+  } else return 0;
+}
 
 /* função que inicializa cada posição da tabela com NULL */
 void initTable(TreeNode *table[]) {
@@ -250,8 +277,91 @@ void insert(TreeNode *table[], string str1, string str2) {
   }
 }
 
-/* =============== TODO Persistencia =============== */
+int countTotalWordsInTable(TreeNode *table[]) {
+  int i, count;
+  count = 0;
+  for(i = 0; i < SIZE; i++) {
+    if(table[i]) {
+      count += countTreeNodes(table[i]);
+    }
+  }
+  return count;
+}
 
+/* =============== Persistencia =============== */
+
+/* SALVAR */
+void saveList(FILE *file, ListNode *list) {
+  if(list) {
+    fprintf(file, "%s\n",list->data);
+    saveList(file,list->next);
+  }
+}
+
+void saveTree(FILE *file, TreeNode *root) {
+  if(root) {
+    fprintf(file, "%s\n%d\n", root->word, countListNodes(root->list));
+    saveList(file,root->list);
+    saveTree(file, root->left);
+    saveTree(file, root->right);
+  }
+}
+
+void save(string filename, TreeNode *table[]) {
+  FILE *file = fopen(filename, "w");
+  if(file) {
+    int count_total_words,i;
+    count_total_words = countTotalWordsInTable(table);
+    fprintf(file, "%d\n", count_total_words);
+    for(i = 0; i < SIZE; i++) {
+      if(!table[i]) continue;
+      saveTree(file, table[i]);
+    }
+    fclose(file);
+  } else {
+    fprintf(stderr, "Erro ao abrir o arquivo %s.\n", filename);
+  }
+}
+
+ListNode *readList(FILE *file, ListNode *list, int count_total_synonyms) {
+  int i;
+  for(i = 0; i < count_total_synonyms; i++) {
+    char synonym[40];
+    fscanf(file,"%s\n", synonym);
+    list = insertNodeInList(list, synonym);
+  }
+  return list;
+}
+
+
+/* RECUPERAR */
+void read(string filename, TreeNode *table[]) {
+  /* considere que a tabela já está iniciada com valores nulos */
+  FILE *file = fopen(filename, "r");
+  if(file) {
+    int count_total_words,i, test;
+    test = fscanf(file, "%d\n", &count_total_words);
+    if(test != 1) {
+      fprintf(stderr, "Erro ao abrir o arquivo %s.\n", filename);
+      return;
+    }
+    for(i = 0; i < count_total_words; i++) {
+      int index, h, count_total_synonyms;
+      char word[40];
+      TreeNode *temp;
+      fscanf(file, "%s\n%d\n", word, &count_total_synonyms);
+      index = hash(word);
+      h = 0;
+      table[index] = insertNodeInTree(table[index], word, &h);
+      temp = searchNodeInTree(table[index], word);
+      temp->list = readList(file,temp->list, count_total_synonyms);
+    }
+
+    fclose(file);
+  } else {
+    fprintf(stderr, "Erro ao abrir o arquivo %s.\n", filename);
+  }
+}
 
 
 int main(void) {
@@ -259,6 +369,7 @@ int main(void) {
   char input[100], op[12], str1[40], str2[40];
   int exit, input_length;
   initTable(table);
+  read(FILENAME, table);
   exit = 0;
   while (exit == 0) {
     fgets(input, sizeof(input), stdin);
@@ -289,6 +400,6 @@ int main(void) {
     }
 
   }
-
+  save(FILENAME, table);
   return 0;
 }
