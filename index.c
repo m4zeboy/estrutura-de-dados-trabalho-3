@@ -250,7 +250,7 @@ void insert(TreeNode *table[], string str1, string str2) {
   }
 }
 
-/* =============== Persistencia =============== */
+/* =============== TODO Persistencia =============== */
 
 
 
@@ -276,6 +276,12 @@ int main(void) {
         showList(temp->list);
       } else {
         printf("hein?\n");
+      }
+    } else if(strcmp(op, "remove") == 0) {
+      if(input_length == 2) {
+        /* TODO remove str */
+      } else if(input_length == 3) {
+        /* TODO remove str1 str2 */
       }
     }
     else if(strcmp(op, "fim") == 0) {
