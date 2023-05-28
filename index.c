@@ -8,11 +8,13 @@
 8 *                                                 *
 9 ***************************************************/
 
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-#define SIZE 10
+#define SIZE 4001
 #define FILENAME "data.txt"
 
 typedef char * string;
@@ -50,6 +52,7 @@ unsigned int hash(string data) {
   return hashValue % SIZE;
 }
 
+/* função que aloca memória dinâmicamente para a criação de um ListNode */
 ListNode *createListNode(string data) {
   ListNode *node = (ListNode *) malloc(sizeof(ListNode));
   if(node) {
@@ -62,6 +65,7 @@ ListNode *createListNode(string data) {
   return node;
 }
 
+/* função que insere uma string data na lista 'list' */
 ListNode *insertNodeInList(ListNode *list, string data) {
   if(list == NULL) {
     return createListNode(data);
@@ -77,6 +81,37 @@ ListNode *insertNodeInList(ListNode *list, string data) {
   } else { return list; }
 }
 
+/* função que libera a memória alocada para um ListNode */
+void freeListNode(ListNode *node) {
+  if(node) {
+    free(node->data);
+    free(node);
+  }
+}
+
+/* função que percorre e libera cada nó da lista 'list' */
+void freeList(ListNode *list) {
+  if(list) {
+    ListNode  *next = list->next;
+    freeListNode(list);
+    freeList(next);
+  }
+}
+
+/* função que busca por um nó na lista e caso exista remove o nó. */
+ListNode *removeNodeFromList(ListNode *list, string data) {
+  if(list == NULL) return NULL;
+  else if(strcmp(list->data, data) == 0) {
+    ListNode *next = list->next;
+    freeListNode(list);
+    return next;
+  } else if(strcmp(data, list->data) > 0){
+    list->next = removeNodeFromList(list->next, data);
+    return list;
+  } else { return list; }
+}
+
+/* função que mosta cada nó da lista em uma linha */
 void showList(ListNode *list) {
   if(list) {
     printf("%s\n", list->data);
@@ -84,13 +119,14 @@ void showList(ListNode *list) {
   }
 }
 
+/* função que conta quantos nós uma lista tem */
 int countListNodes(ListNode *list) {
   if(list) {
     return 1 + countListNodes(list->next);
   } else return 0;
 }
 
-/* ARVORE AVL */
+/*  =============== ÁRVORE AVL =============== */
 
 TreeNode *createTreeNode(string word) {
   TreeNode *node = (TreeNode *) malloc(sizeof(TreeNode));
@@ -107,7 +143,16 @@ TreeNode *createTreeNode(string word) {
   return node;
 }
 
-/* =============== ROTAÇÕES =============== */
+void freeTreeNode(TreeNode *node) {
+  if(node) {
+    free(node->word);
+    freeList(node->list);
+    free(node);
+  }
+}
+
+/* ROTAÇÕES ------------------------------------ */
+
 TreeNode *simpleRightRotation(TreeNode *root) {
   TreeNode *u, *t2;
   u = root->left;
@@ -193,9 +238,10 @@ TreeNode *doubleLeftRotation(TreeNode *root) {
 
   return z;
 }
-/* =============== ROTAÇÕES =============== */
 
+/* ROTAÇÕES ------------------------------------*/
 
+/* função que insere uma palavra 'word' na árvore avl passada por parâmetro, caso não exista  */
 TreeNode *insertNodeInTree(TreeNode *root, string word, int *h) {
   if(root == NULL) {
     *h = 1;
@@ -240,6 +286,7 @@ TreeNode *insertNodeInTree(TreeNode *root, string word, int *h) {
   }
 }
 
+/* função que busca por determinada palavra na árvore avl passada por parâmetro */
 TreeNode *searchNodeInTree(TreeNode *root, string word) {
   if(root == NULL) return NULL;
   else if(strcmp(word, root->word) < 0) {
@@ -251,6 +298,130 @@ TreeNode *searchNodeInTree(TreeNode *root, string word) {
   }
 }
 
+/* função que busca por determinada palavra na árvore avl passada por parâmetro e caso exista remove o nó.. */
+TreeNode *removeNodeFromTree(TreeNode *root, string word, int *h) {
+  if(root == NULL) return NULL;
+  else if(strcmp(root->word, word) == 0) {
+    /* nenhum filho */
+    if(!root->left && !root->right) {
+      *h = 1;
+      freeTreeNode(root);
+      return NULL;
+    } else if(root->left && !root->right) {
+      /* um filho (esquerdo) */
+      TreeNode *temp = root->left;
+      *h = 1;
+      freeTreeNode(root);
+      return temp;
+    } else if(!root->left && root->right) {
+      /* um filho (direito)*/
+      TreeNode *temp = root->right;
+      *h = 1;
+      freeTreeNode(root);
+      return temp;
+    } else {
+      /* dois filhos */
+      TreeNode *substitute = root->left;
+      while(substitute->right) substitute = substitute->right;
+      /* liberar e realocar memoria para a string pois os tamanhos das strings podem ser diferentes */
+      free(root->word);
+      root->word = (string) malloc(strlen(substitute->word) + 1);
+      strcpy(root->word, substitute->word);
+      root->left = removeNodeFromTree(root->left, substitute->word, h);
+      if(*h == 1) {
+        if(root->fb == -1) {
+          root->fb = 0;
+        } else if(root->fb == 0) {
+          root->fb = 1;
+          *h = 0;
+        } else {
+          if(root->right->fb == 0) {
+            root = simpleLeftRotation(root);
+            root->left->fb = 1;
+            root->fb = -1;
+            *h = 0;
+          } else if(root->right->fb == 1) {
+            root = simpleLeftRotation(root);
+            root->right->fb = 0;
+            root->fb = 0;
+          } else {
+            root = doubleLeftRotation(root);
+            root->fb = 0;
+          }
+        }
+      }
+      return root;
+    }
+  } else if(strcmp(word, root->word) < 0) {
+    root->left = removeNodeFromTree(root->left, word, h);
+    if(*h == 1) {
+      if(root->fb == -1) {
+        root->fb = 0;
+      } else if(root->fb == 0) {
+        root->fb = 1;
+        *h = 0;
+      } else {
+        if(root->right->fb == 0) {
+          root = simpleLeftRotation(root);
+          root->right->fb = 1;
+          root->fb = -1;
+          *h = 0;
+        } else if(root->right->fb == 1) {
+          root = simpleLeftRotation(root);
+          root->right->fb = 0;
+          root->fb = 0;
+        } else {
+          root = doubleLeftRotation(root);
+          root->fb = 0;
+        }
+      }
+    }
+    return root;
+  } else {
+    root->right = removeNodeFromTree(root->right, word, h);
+    if(*h == 1) {
+      if(root->fb == 1) {
+        root->fb = 0;
+      } else if(root->fb == 0) {
+        root->fb = -1;
+        *h = 0;
+      } else{
+        if(root->left->fb == 0) {
+          root = simpleRightRotation(root);
+          root->fb = -1;
+          root->right->fb = 1;
+          *h = 0;
+        } else if(root->left->fb == -1) {
+          root = simpleRightRotation(root);
+          root->fb = 0;
+          root->right->fb = 0;
+        } else if(root->left->fb == 1) {
+          root = doubleRightRotation(root);
+          root->fb = 0;
+        }
+      }
+    }
+    return root;
+  }
+}
+
+/* função que busca por uma palavra str1 na tabela e caso encontre tenta remover o sinônimo str2 caso o encontre também */
+void removeSynonym(TreeNode *table[], string str1, string str2) {
+  int index;
+  TreeNode *temp;
+  index = hash(str1);
+  temp = searchNodeInTree(table[index], str1);
+  if(temp) {
+    temp->list = removeNodeFromList(temp->list, str2);
+    /* remover a palavra da estrutura se ela não possuir sinÔnimos */
+    if(temp->list == NULL) {
+      int h = 0;
+      table[index] = removeNodeFromTree(table[index], str1, &h);
+    }
+  }
+}
+
+/* função que conta quantos nós uma árvore tem */
 int countTreeNodes(TreeNode *root) {
   if(root) {
     return 1 + countTreeNodes(root->left) + countTreeNodes(root->right);
@@ -265,6 +436,7 @@ void initTable(TreeNode *table[]) {
   }
 }
 
+/* função que  insere a palavra str2 na tabela e insere str2 na lista de sinônimos de str1 */
 void insert(TreeNode *table[], string str1, string str2) {
   int index, h;
   TreeNode *temp;
@@ -277,6 +449,7 @@ void insert(TreeNode *table[], string str1, string str2) {
   }
 }
 
+/* função que conta quantas palavras tem na tabela - conta todos os nós de todas as árvores */
 int countTotalWordsInTable(TreeNode *table[]) {
   int i, count;
   count = 0;
@@ -290,14 +463,16 @@ int countTotalWordsInTable(TreeNode *table[]) {
 
 /* =============== Persistencia =============== */
 
-/* SALVAR */
+/* SALVAR ------------------------------------ */
+
+/* função que escreve uma lista no arquivo file */
 void saveList(FILE *file, ListNode *list) {
   if(list) {
     fprintf(file, "%s\n",list->data);
     saveList(file,list->next);
   }
 }
-
+/* função que escreve uma árvore  no arquivo file */
 void saveTree(FILE *file, TreeNode *root) {
   if(root) {
     fprintf(file, "%s\n%d\n", root->word, countListNodes(root->list));
@@ -306,7 +481,7 @@ void saveTree(FILE *file, TreeNode *root) {
     saveTree(file, root->right);
   }
 }
-
+/* função que escreve percorre a tabela escreve no arquivo  com nome filename */
 void save(string filename, TreeNode *table[]) {
   FILE *file = fopen(filename, "w");
   if(file) {
@@ -323,6 +498,9 @@ void save(string filename, TreeNode *table[]) {
   }
 }
 
+/* RECUPERAR ------------------------------------ */
+
+/* função que que lê 'count_total_synonyms' linhas e insere na lista 'list' */
 ListNode *readList(FILE *file, ListNode *list, int count_total_synonyms) {
   int i;
   for(i = 0; i < count_total_synonyms; i++) {
@@ -333,8 +511,7 @@ ListNode *readList(FILE *file, ListNode *list, int count_total_synonyms) {
   return list;
 }
 
-
-/* RECUPERAR */
+/* função que lê os dados do arquivo e insere na tabela 'table' */
 void read(string filename, TreeNode *table[]) {
   /* considere que a tabela já está iniciada com valores nulos */
   FILE *file = fopen(filename, "r");
@@ -390,9 +567,15 @@ int main(void) {
       }
     } else if(strcmp(op, "remove") == 0) {
       if(input_length == 2) {
-        /* TODO remove str */
+        int index, h;
+        index = hash(str1);
+        h = 0;
+        table[index] = removeNodeFromTree(table[index], str1, &h);
       } else if(input_length == 3) {
-        /* TODO remove str1 str2 */
+        /* remove str1 str2 */
+        removeSynonym(table, str1, str2);
+        /* remove str2 str1 */
+        removeSynonym(table, str2, str1);
       }
     }
     else if(strcmp(op, "fim") == 0) {
