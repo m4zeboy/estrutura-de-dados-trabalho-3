@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define SIZE 4001
 #define FILENAME "data.txt"
@@ -41,7 +42,7 @@ long power(int k, int i) {
   }
 }
 
-/* Dado uma string obtem o somatório do codigo ascii do caractere atual multiplicado pela constante k elevado a i, onde i é a iteração, no final retorna o módulo desse valor pelo tamanho da tabela */
+/* Dado uma string obtem o somatório do codigo ASCII do caractere atual multiplicado pela constante k elevado a i, onde i é a iteração, no final retorna o módulo desse valor pelo tamanho da tabela */
 unsigned int hash(string data) {
   int k, i;
   unsigned long hashValue = 0;
@@ -556,15 +557,22 @@ int main(void) {
       insert(table, str2, str1);
     }
     else if(strcmp(op, "busca") == 0) {
+      clock_t inicio, fim;
+      double cpu_time_used;
       int index;
       TreeNode *temp;
+      inicio = clock();
       index = hash(str1);
       temp = searchNodeInTree(table[index], str1);
+      fim = clock();
+      cpu_time_used = ((double) (fim - inicio)) / CLOCKS_PER_SEC;
+
       if(temp) {
         showList(temp->list);
       } else {
         printf("hein?\n");
       }
+      printf("\nbuscou em: %f segundos\n", cpu_time_used);
     } else if(strcmp(op, "remove") == 0) {
       if(input_length == 2) {
         int index, h;
