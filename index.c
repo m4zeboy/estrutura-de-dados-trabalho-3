@@ -128,7 +128,7 @@ int countListNodes(ListNode *list) {
 }
 
 /*  =============== ÁRVORE AVL =============== */
-
+/* função que aloca memória para um nó de uma árvore AVL de palavras */
 TreeNode *createTreeNode(string word) {
   TreeNode *node = (TreeNode *) malloc(sizeof(TreeNode));
   if(node) {
@@ -144,11 +144,20 @@ TreeNode *createTreeNode(string word) {
   return node;
 }
 
+/* função que libera a memória alocada para um nó de uma árvore AVL de palavras */
 void freeTreeNode(TreeNode *node) {
   if(node) {
     free(node->word);
     freeList(node->list);
     free(node);
+  }
+}
+/* função que percorre a árvore AVL de palavras e libera a memória alocada de cada nó */
+void freeTree(TreeNode *root) {
+  if(root) {
+    freeTree(root->left);
+    freeTree(root->right);
+    freeTreeNode(root);
   }
 }
 
@@ -437,6 +446,16 @@ void initTable(TreeNode *table[]) {
   }
 }
 
+/* função que percorre a tabela e libera a memória das árvores avl */
+void freeTable(TreeNode *table[]) {
+  int i;
+  for(i = 0; i < SIZE; i++) {
+    if(table[i]) {
+      freeTree(table[i]);
+    }
+  }
+}
+
 /* função que  insere a palavra str2 na tabela e insere str2 na lista de sinônimos de str1 */
 void insert(TreeNode *table[], string str1, string str2) {
   int index, h;
@@ -541,7 +560,6 @@ void read(string filename, TreeNode *table[]) {
   }
 }
 
-
 int main(void) {
   TreeNode *table[SIZE];
   char input[100], op[12], str1[40], str2[40];
@@ -557,22 +575,16 @@ int main(void) {
       insert(table, str2, str1);
     }
     else if(strcmp(op, "busca") == 0) {
-      clock_t inicio, fim;
-      double cpu_time_used;
       int index;
       TreeNode *temp;
-      inicio = clock();
       index = hash(str1);
       temp = searchNodeInTree(table[index], str1);
-      fim = clock();
-      cpu_time_used = ((double) (fim - inicio)) / CLOCKS_PER_SEC;
 
       if(temp) {
         showList(temp->list);
       } else {
         printf("hein?\n");
       }
-      printf("\nbuscou em: %f segundos\n", cpu_time_used);
     } else if(strcmp(op, "remove") == 0) {
       if(input_length == 2) {
         int index, h;
@@ -589,8 +601,8 @@ int main(void) {
     else if(strcmp(op, "fim") == 0) {
         exit = 1;
     }
-
   }
   save(FILENAME, table);
+  freeTable(table);
   return 0;
 }
