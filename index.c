@@ -9,6 +9,8 @@
 9 ***************************************************/
 
 
+/* todo tratar a mensagem de erro que aparece ao executar o programa informando erro ao abrir o arquivo */
+/* todo tornar a função de inserir mais eficiente, sem precisar inserir e buscar em seguida */
 
 #include <stdio.h>
 #include <string.h>
@@ -252,14 +254,18 @@ TreeNode *doubleLeftRotation(TreeNode *root) {
 /* ROTAÇÕES ------------------------------------*/
 
 /* função que insere uma palavra 'word' na árvore avl passada por parâmetro, caso não exista  */
-TreeNode *insertNodeInTree(TreeNode *root, string word, int *h) {
+TreeNode *insertNodeInTree(TreeNode *root, string word, string synonym, int *h) {
   if(root == NULL) {
+    TreeNode *new;
     *h = 1;
-    return createTreeNode(word);
+    new = createTreeNode(word);
+    new->list = insertNodeInList(new->list, synonym);
+    return new;
   } else if(strcmp(word,root->word) == 0) {
+    root->list = insertNodeInList(root->list, synonym);
     return root;
   } else if(strcmp(word,root->word) < 0) {
-    root->left = insertNodeInTree(root->left, word, h);
+    root->left = insertNodeInTree(root->left, word, synonym,h);
     if(*h == 1) {
       if(root->fb == 1) {
         root->fb = 0;
@@ -274,9 +280,10 @@ TreeNode *insertNodeInTree(TreeNode *root, string word, int *h) {
         }
       }
     }
+    root->list = insertNodeInList(root->list, synonym);
     return root;
   } else {
-    root->right = insertNodeInTree(root->right,word, h);
+    root->right = insertNodeInTree(root->right,word,synonym, h);
     if(*h == 1) {
       if(root->fb == -1) {
         *h = 0;
@@ -337,6 +344,10 @@ TreeNode *removeNodeFromTree(TreeNode *root, string word, int *h) {
       free(root->word);
       root->word = (string) malloc(strlen(substitute->word) + 1);
       strcpy(root->word, substitute->word);
+      /* liberar a lista de sinônimos */
+      freeList(root->list);
+      /* copiar a lista substituta */
+      root->list = substitute->list;
       root->left = removeNodeFromTree(root->left, substitute->word, h);
       if(*h == 1) {
         if(root->fb == -1) {
@@ -456,17 +467,11 @@ void freeTable(TreeNode *table[]) {
   }
 }
 
-/* função que  insere a palavra str2 na tabela e insere str2 na lista de sinônimos de str1 */
 void insert(TreeNode *table[], string str1, string str2) {
   int index, h;
-  TreeNode *temp;
   index = hash(str1);
   h = 0;
-  table[index] = insertNodeInTree(table[index], str1, &h);
-  temp = searchNodeInTree(table[index], str1);
-  if(temp) {
-    temp->list = insertNodeInList(temp->list, str2);
-  }
+  table[index] = insertNodeInTree(table[index], str1, str2, &h);
 }
 
 /* função que conta quantas palavras tem na tabela - conta todos os nós de todas as árvores */
@@ -520,17 +525,6 @@ void save(string filename, TreeNode *table[]) {
 
 /* RECUPERAR ------------------------------------ */
 
-/* função que que lê 'count_total_synonyms' linhas e insere na lista 'list' */
-ListNode *readList(FILE *file, ListNode *list, int count_total_synonyms) {
-  int i;
-  for(i = 0; i < count_total_synonyms; i++) {
-    char synonym[40];
-    fscanf(file,"%s\n", synonym);
-    list = insertNodeInList(list, synonym);
-  }
-  return list;
-}
-
 /* função que lê os dados do arquivo e insere na tabela 'table' */
 void read(string filename, TreeNode *table[]) {
   /* considere que a tabela já está iniciada com valores nulos */
@@ -539,24 +533,21 @@ void read(string filename, TreeNode *table[]) {
     int count_total_words,i, test;
     test = fscanf(file, "%d\n", &count_total_words);
     if(test != 1) {
-      fprintf(stderr, "Erro ao abrir o arquivo %s.\n", filename);
       return;
     }
     for(i = 0; i < count_total_words; i++) {
-      int index, h, count_total_synonyms;
+      int index, h, count_total_synonyms,j;
       char word[40];
-      TreeNode *temp;
       fscanf(file, "%s\n%d\n", word, &count_total_synonyms);
       index = hash(word);
       h = 0;
-      table[index] = insertNodeInTree(table[index], word, &h);
-      temp = searchNodeInTree(table[index], word);
-      temp->list = readList(file,temp->list, count_total_synonyms);
+      for(j = 0; j < count_total_synonyms; j++) {
+        char synonym[40];
+        fscanf(file, "%s\n", synonym);
+        table[index] = insertNodeInTree(table[index], word, synonym,&h);
+      }
     }
-
     fclose(file);
-  } else {
-    fprintf(stderr, "Erro ao abrir o arquivo %s.\n", filename);
   }
 }
 
