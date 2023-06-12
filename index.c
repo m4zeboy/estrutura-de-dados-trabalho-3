@@ -434,7 +434,7 @@ void removeSynonym(TreeNode *table[], string str1, string str2) {
   temp = searchNodeInTree(table[index], str1);
   if(temp) {
     temp->list = removeNodeFromList(temp->list, str2);
-    /* remover a palavra da estrutura se ela não possuir sinÔnimos */
+    /* remover a palavra da estrutura se ela não possuir sinônimos */
     if(temp->list == NULL) {
       int h = 0;
       table[index] = removeNodeFromTree(table[index], str1, &h);
@@ -467,6 +467,7 @@ void freeTable(TreeNode *table[]) {
   }
 }
 
+/* função que calcula o hash de uma palavra e insere str1 na estrutura e str2 como sinonimo associado */
 void insert(TreeNode *table[], string str1, string str2) {
   int index, h;
   index = hash(str1);
@@ -506,7 +507,7 @@ void saveTree(FILE *file, TreeNode *root) {
     saveTree(file, root->right);
   }
 }
-/* função que escreve percorre a tabela escreve no arquivo  com nome filename */
+/* função que percorre a tabela escreve no arquivo  com nome filename */
 void save(string filename, TreeNode *table[]) {
   FILE *file = fopen(filename, "w");
   if(file) {
